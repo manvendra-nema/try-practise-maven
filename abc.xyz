@@ -1,0 +1,18 @@
+1.	Dataset with image not of one compleate house
+•	(21.3k)https://www.kaggle.com/datasets/nikhilkushwaha2529/real-estate-with-image
+•	(374) https://images.cv/dataset/house-image-classification-dataset
+•	(5250)https://www.kaggle.com/datasets/robinreni/house-rooms-image-dataset
+2.	Dataset with realstateimage and description
+a.	(129) https://huggingface.co/datasets/jashu66/realestate-image-dataset
+3.	Dataset of house under construction no annotation
+a.	(1080)https://www.kaggle.com/datasets/mumeryasin/bricks-under-construction-or-old-building-houses
+4.	Dataset of house type/style detection external image of houses
+a.	(8670)https://www.kaggle.com/datasets/kelvingothman/house-typestyle-detection
+5.	Dataset for living room object detection with bounding box
+a.	(3024)https://www.kaggle.com/datasets/dwikikusuma/living-room-object-data
+6.	Statlite image for top of the house 
+a.	(4000)https://universe.roboflow.com/fred-qftbx/project-zillow/browse?queryText=&pageSize=50&startingIndex=50&browseQuery=true
+7.	Dataset of houses where each houses multiple image are available with room annotation ( 4 images for each house. )
+a.	(2140)https://github.com/emanhamed/Houses-dataset/tree/master
+
+What are these website Zillow, Realtor.
