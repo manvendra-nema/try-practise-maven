@@ -1,1 +1,89 @@
 
+def group_images_by_house(folder_path):
+    house_dict = defaultdict(list)
+    for file in os.listdir(folder_path):
+        name, ext = os.path.splitext(file)
+        if ext.lower() in SUPPORTED_EXTENSIONS:
+            parts = name.split("_")
+            if len(parts) == 2 and parts[0].isdigit():
+                house_id = parts[0]
+                house_dict[house_id].append(os.path.join(folder_path, file))
+    return house_dict
+
+
+def load_image_as_base64(image_path):
+    try:
+        with Image.open(image_path) as img:
+            buffered = BytesIO()
+            img.convert("RGB").save(buffered, format="JPEG")
+            return base64.b64encode(buffered.getvalue()).decode()
+    except Exception as e:
+        print(f"Error loading {image_path}: {e}")
+        return None
+
+
+def run_inference(image_b64):
+    response = ollama_client.chat(
+        model=OLLAMA_MODEL,
+        messages=[
+            {"role": "user", "content": create_prompt()},
+            {"role": "user", "content": {"type": "image", "image": image_b64}},
+        ]
+    )
+
+    text = response.get("message", {}).get("content", "").strip()
+
+    # Strip potential markdown block formatting
+    if text.startswith("```json"):
+        text = text[7:].strip("` \n")
+    elif text.startswith("```"):
+        text = text[3:].strip("` \n")
+
+    try:
+        return json.loads(text)
+    except Exception as e:
+        print(f"❌ Failed to parse JSON. Raw response:\n{text}\nError: {e}")
+        return {}
+
+
+def merge_json_list(json_list):
+    final = {}
+    for entry in json_list:
+        for key, value in entry.items():
+            if key not in final or final[key] is None:
+                final[key] = value
+            elif final[key] != value and value is not None:
+                raise ValueError(f"Conflict in field '{key}': '{final[key]}' vs '{value}'")
+    return final
+
+
+def process_house(house_id, image_paths):
+    json_outputs = []
+
+    for path in image_paths:
+        image_b64 = load_image_as_base64(path)
+        if image_b64:
+            print(f"🧠 Running inference on {path}...")
+            result = run_inference(image_b64)
+            json_outputs.append(result)
+
+    try:
+        final_json = merge_json_list(json_outputs)
+        print(f"\n✅ Final JSON for House {house_id}:\n{json.dumps(final_json, indent=2)}")
+    except ValueError as e:
+        print(f"\n❌ Conflict in House {house_id}: {e}")
+
+
+def main():
+    houses = group_images_by_house(IMAGE_FOLDER)
+    print(f"Found {len(houses)} houses.")
+
+    for house_id, image_paths in houses.items():
+        if len(image_paths) != 5:
+            print(f"⚠️ Skipping house {house_id}: found {len(image_paths)} images (expecting 5)")
+            continue
+        process_house(house_id, image_paths)
+
+
+if __name__ == "__main__":
+    main()
