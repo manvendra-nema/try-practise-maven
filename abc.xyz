@@ -1,1 +1,44 @@
+import pandas as pd
+import json
 
+def csv_to_jsonl(csv_path, output_path):
+    df = pd.read_csv(csv_path)
+    df.fillna(method='ffill', inplace=True)
+
+    grouped = df.groupby('image_name', sort=False)
+    
+    with open(output_path, 'w') as f_out:
+        for image_name, group in grouped:
+            image_data = {
+                "image_name": image_name,
+                "conditions": {}
+            }
+
+            for _, row in group.iterrows():
+                condition = row['condition']
+                subcategory = row['subcategory']
+                is_present = row['is_present']
+                notes = row['notes']
+
+                if pd.isna(condition) or pd.isna(subcategory):
+                    continue
+
+                if condition not in image_data["conditions"]:
+                    image_data["conditions"][condition] = {}
+
+                if subcategory not in image_data["conditions"][condition]:
+                    image_data["conditions"][condition][subcategory] = []
+
+                image_data["conditions"][condition][subcategory].append({
+                    "is_present": bool(is_present) if pd.notna(is_present) else False,
+                    "notes": notes if pd.notna(notes) else "",
+                    "affected_area": image_name
+                })
+
+            # Write one line per image
+            f_out.write(json.dumps(image_data) + '\n')
+
+# Example usage:
+csv_path = 'input.csv'
+output_path = 'output.jsonl'
+csv_to_jsonl(csv_path, output_path)
