@@ -1,1 +1,61 @@
 
+import pandas as pd
+import json
+
+def csv_to_json(csv_path):
+    df = pd.read_csv(csv_path)
+
+    df.fillna(method='ffill', inplace=True)
+
+    result = []
+    current_image = None
+    image_group = {}
+
+    for _, row in df.iterrows():
+        image_name = row['image_name']
+        condition = row['condition']
+        subcategory = row['subcategory']
+        is_present = row['is_present']
+        notes = row['notes']
+
+        # Start a new image group
+        if image_name != current_image:
+            if image_group:
+                result.append(image_group)
+            current_image = image_name
+            image_group = {
+                "image_name": current_image,
+                "conditions": []
+            }
+            current_condition = None
+
+        # Handle condition change
+        if (not image_group["conditions"]) or (image_group["conditions"][-1]["name"] != condition):
+            image_group["conditions"].append({
+                "name": condition,
+                "subcategories": []
+            })
+
+        # Add subcategory entry
+        image_group["conditions"][-1]["subcategories"].append({
+            "name": subcategory,
+            "is_present": bool(is_present) if pd.notna(is_present) else False,
+            "notes": notes if pd.notna(notes) else ""
+        })
+
+    # Append the last image group
+    if image_group:
+        result.append(image_group)
+
+    return result
+
+# Example usage:
+csv_path = 'input.csv'
+json_data = csv_to_json(csv_path)
+
+# Save to file or print
+with open('output.json', 'w') as f:
+    json.dump(json_data, f, indent=2)
+
+# Optionally print it
+# print(json.dumps(json_data, indent=2))
