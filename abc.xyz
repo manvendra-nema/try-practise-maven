@@ -1,1 +1,43 @@
+import pandas as pd
+import json
 
+def csv_to_condition_json(csv_path):
+    df = pd.read_csv(csv_path)
+    df.fillna(method='ffill', inplace=True)
+
+    condition_dict = {}
+
+    for _, row in df.iterrows():
+        image_name = row['image_name']
+        condition = row['condition']
+        subcategory = row['subcategory']
+        is_present = row['is_present']
+        notes = row['notes']
+
+        if pd.isna(condition) or pd.isna(subcategory):
+            continue
+
+        # Initialize condition if not present
+        if condition not in condition_dict:
+            condition_dict[condition] = {}
+
+        # Initialize subcategory list if not present
+        if subcategory not in condition_dict[condition]:
+            condition_dict[condition][subcategory] = []
+
+        # Append the observation
+        condition_dict[condition][subcategory].append({
+            "is_present": bool(is_present) if pd.notna(is_present) else False,
+            "notes": notes if pd.notna(notes) else "",
+            "affected_area": image_name
+        })
+
+    return condition_dict
+
+# Example usage:
+csv_path = 'input.csv'
+json_data = csv_to_condition_json(csv_path)
+
+# Save to file
+with open('output_condition_centric.json', 'w') as f:
+    json.dump(json_data, f, indent=2)
