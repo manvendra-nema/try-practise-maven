@@ -1,1 +1,45 @@
+from transformers import AutoProcessor, AutoModelForVision2Seq
+import torch
+from PIL import Image
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model = AutoModelForVision2Seq.from_pretrained("OpenGVLab/InternVL-Chat-V1-5", torch_dtype=torch.float16).to(device)
+processor = AutoProcessor.from_pretrained("OpenGVLab/InternVL-Chat-V1-5")
+
+from langchain_core.language_models import BaseLanguageModel
+from langchain_core.outputs import LLMResult
+from typing import List, Optional
+from PIL import Image
+
+class InternVLWrapper(BaseLanguageModel):
+    model: any
+    processor: any
+    device: str = "cuda" if torch.cuda.is_available() else "cpu"
+
+    def _call(self, prompt: str, stop: Optional[List[str]] = None, image: Optional[Image.Image] = None) -> str:
+        if image is None:
+            raise ValueError("An image is required for multimodal reasoning.")
+
+        inputs = self.processor(prompt, image, return_tensors="pt").to(self.device)
+        output = self.model.generate(**inputs, max_new_tokens=256)
+        response = self.processor.decode(output[0], skip_special_tokens=True)
+        return response
+
+    @property
+    def _llm_type(self) -> str:
+        return "internvl-wrapper"
+from langchain.output_parsers import PydanticOutputParser
+from pydantic import BaseModel
+
+class CaptionOutput(BaseModel):
+    caption: str
+
+parser = PydanticOutputParser(pydantic_object=CaptionOutput)
+
+prompt = """
+You are a helpful image captioning assistant.
+Based on the input image, return the following in JSON format:
+{format_instructions}
+
+Image: <uploaded_image>
+""".replace("{format_instructions}", parser.get_format_instructions())
